@@ -2,6 +2,14 @@ pipeline {
     agent any
 
     stages {
+	stage('Test') {
+		steps {
+			echo "Testing changes"
+			sh "test -f index.html"
+			echo "Tests passed successfully"
+		}	
+	}
+
         stage('Cleanup Old Container') {
             steps {
                 sh 'docker stop test-web-app || true'
