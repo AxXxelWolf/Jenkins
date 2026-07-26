@@ -31,15 +31,16 @@ pipeline {
             }
         }
     }
-}
 
-{
-	post {
-		success {
-			echo 'Pipeline executed successfully!'
-		}
-		failure {
-			echo 'pipline failed'
+
+	{
+		post {
+			success {
+				echo 'Pipeline executed successfully!'
+			}
+			failure {
+				echo 'pipline failed'
+			}
 		}
 	}
 }
