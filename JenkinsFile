@@ -17,16 +17,10 @@ pipeline {
             }
         }
 
-	stage('Build Docker Image') {
-	    steps {
-		sh 'docker build --no-cache -t test-web-app .'
-	    }
-	}
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building image from GitHub source...'
-                sh 'docker build -t github-nginx-app:v1 .'
+                sh 'docker build --no-cache -t github-nginx-app:v1 .'
             }
         }
 
