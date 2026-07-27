@@ -10,6 +10,14 @@ pipeline {
 		}	
 	}
 
+	stage('Docker Login') {
+		steps { 
+			withCredentials([usernamePassword(crdentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+				sh 'echo "$DOCKER_PASS" | docker logn -u "$DOCKER_USER" --password-stdin'
+			}	
+		}
+	}	
+
         stage('Cleanup Old Container') {
             steps {
                 sh 'docker stop test-web-app || true'
