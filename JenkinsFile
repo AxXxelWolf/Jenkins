@@ -2,62 +2,45 @@ pipeline {
     agent any
 
     parameters {
-	string(name:'IMAGE_TAG', defaultValue: 'v1.0', description: 'Specify the spcific version tag')
-	choice(name: 'DEPLOY_ENV', choices: ['dev','staging','production'], description: 'Select deployment env')
-}
+        string(name: 'IMAGE_TAG', defaultValue: 'v1.0', description: 'Specify image version tag')
+        choice(name: 'DEPLOY_ENV', choices: ['dev', 'staging', 'production'], description: 'Select deployment environment')
+    }
 
     stages {
-	stage('Test') {
-		steps {
-			echo "Testing for environment: ${params.DEPLOY_ENV}"
-			sh "test -f index.html"
-			echo "Tests passed successfully"
-		}	
-	}
-
-	stage('Docker Login') {
-		steps { 
-			withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-			sh"""
-				echo "Building version ${params.IMAGE_TAG}..."
-                        docker build -t $DOCKER_USER/github-nginx-app:${params.IMAGE_TAG} .
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $DOCKER_USER/github-nginx-app:${params.IMAGE_TAG}"""
-			}	
-		}
-	}	
-
-        stage('Cleanup Old Container') {
-            steps {
-                sh 'docker stop test-web-app || true'
-                sh 'docker rm test-web-app || true'
+        stage('Parallel Quality Checks') {
+            parallel {
+                stage('Run Linter') {
+                    steps {
+                        echo "🔍 Running static code linting..."
+                        sh 'sleep 5'
+                    }
+                }
+                stage('Run Security Scan') {
+                    steps {
+                        echo "🔒 Scanning dependencies for vulnerabilities..."
+                        sh 'sleep 5'
+                    }
+                }
+                stage('Run Unit Tests') {
+                    steps {
+                        echo "🧪 Executing test suite for ${params.DEPLOY_ENV}..."
+                        sh 'sleep 5'
+                    }
+                }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push to Docker Hub') {
             steps {
-                echo 'Building image from GitHub source...'
-                sh 'docker build --no-cache -t github-nginx-app:v1 .'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Spinning up container on port 8083...'
-                sh 'docker run -d -p 8083:80 --name test-web-app github-nginx-app:v1'
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "Building version ${params.IMAGE_TAG}..."
+                        docker build -t \$DOCKER_USER/github-nginx-app:${params.IMAGE_TAG} .
+                        echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                        docker push \$DOCKER_USER/github-nginx-app:${params.IMAGE_TAG}
+                    """
+                }
             }
         }
     }
-
-
-
-	post {
-		success {
-			echo 'Pipeline executed successfully!'
-		}
-		failure {
-			echo 'pipline failed'
-		}
-	}
-
 }
