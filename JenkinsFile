@@ -1,10 +1,15 @@
 pipeline {
     agent any
 
+    parameters {
+	string(name:'IMAGE_TAG', defaultValue: 'v1.0', description: 'Specify the spcific version tag')
+	string(name: 'DEPLOY_ENV', choices['dev','staging','production'], description: 'Select deployment env')
+}
+
     stages {
 	stage('Test') {
 		steps {
-			echo "Testing changes"
+			echo "Testing for environment: ${params.DEPLOY_ENV}"
 			sh "test -f index.html"
 			echo "Tests passed successfully"
 		}	
@@ -13,9 +18,11 @@ pipeline {
 	stage('Docker Login') {
 		steps { 
 			withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-				sh '''echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-				docker tag github-nginx-app:v1 $DOCKER_USER/github-nginx-app:v1
-				docker push $DOCKER_USER/github-nginx-app:v1'''
+			sh'''
+				echo "Building version ${params.IMAGE_TAG}..."
+                        docker build -t $DOCKER_USER/github-nginx-app:${params.IMAGE_TAG} .
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $DOCKER_USER/github-nginx-app:${params.IMAGE_TAG}'''
 			}	
 		}
 	}	
